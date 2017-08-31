@@ -128,7 +128,7 @@
       <include refid="Example_Where_Clause" />
     </if>
   </delete>
-  <insert id="insert" parameterType="cn.e3.pojo.TbContent" >
+  <insert id="insert" parameterType="cn.e3.pojo.TbContent" useGeneratedKeys="true" keyProperty="id">
     insert into tb_content (id, category_id, title, 
       sub_title, title_desc, url, 
       pic, pic2, created, 
