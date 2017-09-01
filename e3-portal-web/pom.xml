@@ -98,6 +98,12 @@
 			<version>${jsp-api.version}</version>
 			<scope>provided</scope>
 		</dependency>
+		<!-- 依赖内容服务接口 -->
+		<dependency>
+			<groupId>cn.e3</groupId>
+			<artifactId>e3-content-interface</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 	</dependencies>	
 		<build>
 			<plugins>

@@ -35,7 +35,7 @@
 	<!-- 使用dubbo从Zookeeper注册中心获取服务 -->
 	<dubbo:registry protocol="zookeeper" address="192.168.80.131:2181" />
 	<!-- 引用服务 -->
-	<!-- <dubbo:reference interface="cn.e3.manager.service.ItemService" id="itemService" timeout="1000000"/> -->
+	<dubbo:reference interface="cn.e3.content.service.ContentService" id="contentService" timeout="1000000"/>
 	
 
 </beans>
