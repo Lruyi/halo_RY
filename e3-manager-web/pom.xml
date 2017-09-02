@@ -127,6 +127,12 @@
 			<artifactId>e3-content-interface</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
+		<!-- 依赖e3-search-interface -->
+		<dependency>
+			<groupId>cn.e3</groupId>
+			<artifactId>e3-search-interface</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
 
 	<build>

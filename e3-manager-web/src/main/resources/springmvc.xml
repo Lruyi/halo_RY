@@ -49,5 +49,8 @@
 	
 	<!-- 引用广告内容服务 -->
 	<dubbo:reference interface="cn.e3.content.service.ContentService" id="contentService" timeout="1000000"></dubbo:reference>
+	
+	<!-- 引用搜索服务 -->
+	<dubbo:reference interface="cn.e3.search.service.SearchItemService" id="searchItemService" timeout="1000000"></dubbo:reference>
 
 </beans>
