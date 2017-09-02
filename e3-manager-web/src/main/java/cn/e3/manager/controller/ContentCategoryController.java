@@ -17,8 +17,8 @@ public class ContentCategoryController {
 
 	/**
 	 * 注入广告服务对象:
-	 * 	1. 引入广告服务接口
-	 * 	2. dubbo引入服务
+	 * 	 1. 引入广告服务接口
+	 * 	 2. dubbo引入服务
 	 */
 	@Autowired
 	private ContentCategoryService contentCategoryService;
