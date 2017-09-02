@@ -89,8 +89,16 @@ public class ContentServiceImpl implements ContentService {
 	 * 需求:添加广告内容数据
 	 * 参数:TbContent content
 	 * 返回值:E3mallResult
+	 * 同步缓冲:
+	 * 	添加  修改   删除
+	 * 	删除redis服务器缓冲,
+	 * 	下次查询,重新从数据库查询数据
 	 */
 	public E3mallResult saveContent(TbContent content) {
+		
+		//删除缓冲
+		jedisDao.hdel(INDEX_CACHE, content.getCategoryId()+"");
+		
 		// 不全时间属性
 		Date date = new Date();
 		content.setCreated(date);
