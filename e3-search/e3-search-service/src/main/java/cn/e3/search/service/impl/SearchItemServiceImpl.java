@@ -2,16 +2,19 @@ package cn.e3.search.service.impl;
 
 import java.util.List;
 
+import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.common.SolrInputDocument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.alibaba.dubbo.config.annotation.Service;
-
+import cn.e3.search.dao.SearchItemDao;
 import cn.e3.search.mapper.SearchItemMapper;
 import cn.e3.search.pojo.SearchItem;
+import cn.e3.search.pojo.SolrPageBean;
 import cn.e3.search.service.SearchItemService;
 import cn.e3.utils.E3mallResult;
+
+import com.alibaba.dubbo.config.annotation.Service;
 @Service
 public class SearchItemServiceImpl implements SearchItemService {
 	
@@ -22,6 +25,10 @@ public class SearchItemServiceImpl implements SearchItemService {
 	//注入solr服务对象
 	@Autowired
 	private SolrServer solrServer;
+	
+	//输入SearchItemDao
+	@Autowired
+	private SearchItemDao searchItemDao;
 
 	/**
 	 * 需求:查询数据库,数据库导入索引库
@@ -66,6 +73,56 @@ public class SearchItemServiceImpl implements SearchItemService {
 		}
 		
 		return E3mallResult.ok();
+	}
+
+	/**
+	 * 需求:业务处理层,查询索引库数据
+	 * 参数:String qName,Integer page,Integer rows
+	 * 返回值:分页包装类对象SolrPageBean
+	 * 方法:findSolrIndexWithConditionPage
+	 */
+	public SolrPageBean findSolrIndexWithConditionPage(String qName,
+			Integer page, Integer rows) {
+		
+		// 创建solrj提供封装参数对象SolrQuery
+		SolrQuery solrQuery = new SolrQuery();
+		//封装查询参数
+		if (qName!=null && !"".equals(qName)) {
+			solrQuery.setQuery(qName);
+		}else{
+			solrQuery.setQuery("*:*");
+		}
+		
+		//设置分页
+		int startNo = (page-1)*rows;
+		solrQuery.setStart(startNo);
+		solrQuery.setRows(rows);
+		
+		//高亮展示
+		//开启高亮
+		solrQuery.setHighlight(true);
+		//指定高亮字段
+		solrQuery.addHighlightField("item_title");
+		//设置高亮前缀
+		solrQuery.setHighlightSimplePre("<font color='red'>");
+		//设置高亮后缀
+		solrQuery.setHighlightSimplePost("</font>");
+		
+		//设置默认查询字段
+		solrQuery.set("df", "item_keywords");
+		
+		//查询dao
+		SolrPageBean pageBean = searchItemDao.findSolrIndexWithConditionPage(solrQuery);
+		//设置当前页
+		pageBean.setCurPage(page);
+		//设置总页码
+		//计算总页码
+		Integer recordCount = pageBean.getRecordCount();
+		int pages = (int) Math.ceil(1.0*recordCount/rows);
+		
+		pageBean.setTotalPages(pages);
+		
+		return pageBean;
 	}
 
 }

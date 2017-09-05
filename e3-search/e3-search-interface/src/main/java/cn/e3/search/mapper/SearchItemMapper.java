@@ -13,4 +13,11 @@ public interface SearchItemMapper {
 	 * 查询数据库字段有多少,索引库域字段有多少.
 	 */
 	public List<SearchItem> importSolrIndexWithDatabase();
+	
+	/**
+	 * 需求:根据id查询索引库需要的商品数据
+	 * 参数:商品id
+	 * 返回值:SearchItem
+	 */
+	public SearchItem selectSolrIndexWithDatabase(Long itemId);
 }

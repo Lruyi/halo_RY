@@ -2,6 +2,8 @@ package cn.e3.search.pojo;
 
 import java.io.Serializable;
 
+import org.apache.commons.lang3.StringUtils;
+
 public class SearchItem implements Serializable{
 
 	/*a.id,
@@ -19,6 +21,22 @@ public class SearchItem implements Serializable{
 	private String image;
 	private String category_name;
 	private String item_desc;
+	
+	//定义存储图片数组
+	private String[] images;
+	
+	
+	//item.image[0]调用get方法
+	public String[] getImages() {
+		if (StringUtils.isNotBlank(image)) {
+			images = image.split(",");
+		}
+		return images;
+	}
+	public void setImages(String[] images) {
+		this.images = images;
+	}
+	
 	public Long getId() {
 		return id;
 	}

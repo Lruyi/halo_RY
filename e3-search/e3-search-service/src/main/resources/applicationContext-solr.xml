@@ -18,8 +18,14 @@
 	http://www.springframework.org/schema/util
 	http://www.springframework.org/schema/util/spring-util-4.0.xsd">
 	
-	<!-- 把solr服务交给spring管理 -->
+	<!-- 把solr服务交给spring管理(单机版) -->
 	<bean class="org.apache.solr.client.solrj.impl.HttpSolrServer">
 		<constructor-arg name="baseURL" value="http://192.168.80.131:8080/solr/item"></constructor-arg>
 	</bean>
+	
+	<!-- 把solr集群交给spring管理(集群版) -->
+	<!-- <bean class="org.apache.solr.client.solrj.impl.CloudSolrServer">
+		<constructor-arg name="zkHost" value="192.168.80.131:2182,192.168.80.131:2183,192.168.80.131:2184"></constructor-arg>
+		<property name="defaultCollection" value="item"></property>
+	</bean> -->
 </beans>
