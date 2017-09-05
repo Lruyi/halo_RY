@@ -3,9 +3,19 @@ package cn.e3.manager.service.impl;
 import java.util.Date;
 import java.util.List;
 
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.Session;
+
+import org.apache.activemq.command.ActiveMQTopic;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.MessageCreator;
 import org.springframework.stereotype.Service;
 
+import cn.e3.manager.jedis.JedisDao;
 import cn.e3.manager.service.ItemService;
 import cn.e3.mapper.TbItemDescMapper;
 import cn.e3.mapper.TbItemMapper;
@@ -15,6 +25,7 @@ import cn.e3.pojo.TbItemExample;
 import cn.e3.utils.DatagridPageBean;
 import cn.e3.utils.E3mallResult;
 import cn.e3.utils.IDUtils;
+import cn.e3.utils.JsonUtils;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
@@ -28,16 +39,72 @@ public class ItemServiceImpl implements ItemService {
 	//注入商品描述表Mapper接口代理对象
 	@Autowired
 	private TbItemDescMapper itemDescMapper;
-
+	
+	//注入spring提供的消息发送模板
+	@Autowired
+	private JmsTemplate jmsTemplate;
+	
+	//注入消息发送目的地
+	@Autowired
+	private ActiveMQTopic activeMQTopic;
+	
+	//注入jedisDao
+	@Autowired
+	private JedisDao jedisDao;
+	
+	//注入商品详情缓存唯一标识
+	@Value("${ITEM_DETAIL}")
+	private String ITEM_DETAIL;
+	
+	//注入商品详情页面缓存过期时间
+	@Value("${ITEM_DETAIL_EXPIRE_TIEM}")
+	private Integer ITEM_DETAIL_EXPIRE_TIEM;
+	
 	/**
 	 * 需求:根据id查询商品信息
 	 * 参数:Long itemId
 	 * 返回值:TbItem
 	 * 方法:findItemByDI
+	 * 商品详情调用方法:
+	 * 购物车调用方法:
+	 * 因此此方法查询数据库,对数据库造成很大压力,因此必须添加缓存
+	 * 缓存服务器redis:
+	 * 数据结构选用:String(因为要给缓存设置过期时间,只有string能设置)
+	 * KEY:ITEM_DETAIL:BASE:itemId
+	 * VALUE:json(item)
+	 * 缓存添加业务流程:
+	 * 	1. 先查缓存
+	 * 	2. 如果缓存中有数据,直接返回,不再查询数据库
+	 * 	3. 如果缓存中没有数据,查询数据库,并把数据放入到缓存
+	 * 	4. 缓存设置过期时间:12h. 12h后缓存消失,自动再次查询数据库
+	 * 
 	 */
 	public TbItem findItemByDI(Long itemId) {
-		TbItem tbItem = tbItemMapper.selectByPrimaryKey(itemId);
-		return tbItem;
+		
+		try {
+			//先查询缓存
+			String itemJson = jedisDao.get(ITEM_DETAIL+":BASE:"+itemId);
+			//判断商品缓存是否存在
+			if (StringUtils.isNotBlank(itemJson)) {
+				//说明缓存有值
+				TbItem item = JsonUtils.jsonToPojo(itemJson, TbItem.class);
+				//直接返回即可
+				return item;
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		TbItem item = tbItemMapper.selectByPrimaryKey(itemId);
+		
+		//添加缓存
+		jedisDao.set(ITEM_DETAIL+":BASE:"+itemId, JsonUtils.objectToJson(item));
+		//设置缓存过期时间
+		jedisDao.expire(ITEM_DETAIL+":BASE:"+itemId, ITEM_DETAIL_EXPIRE_TIEM);
+		
+		return item;
 	}
 
 	/**
@@ -80,11 +147,13 @@ public class ItemServiceImpl implements ItemService {
 	 * 	1. redis+1
 	 * 	2. 数据库生成id
 	 * 	3. 时间+随机数(√)---- 毫秒+2位随机数(99)---每一个毫秒有10000
+	 * 添加商品:
+	 * 	新添加商品与索引库商品数据不同步,添加商品时候发送消息,通知搜索服务,同步索引库数据
 	 */
 	public E3mallResult saveItem(TbItem item, TbItemDesc itemDesc) {
 		//保存商品表数据
 		//生成商品id
-		long itemId = IDUtils.genItemId();
+		final long itemId = IDUtils.genItemId();
 		item.setId(itemId);
 		//商品状态
 		//商品状态，1-正常，2-下架，3-删除
@@ -107,9 +176,65 @@ public class ItemServiceImpl implements ItemService {
 		//保存
 		itemDescMapper.insert(itemDesc);
 		
+		//发送消息
+		jmsTemplate.send(activeMQTopic, new MessageCreator() {
+			
+			@Override
+			public Message createMessage(Session session) throws JMSException {
+				//发送消息
+				return session.createTextMessage(itemId+"");
+			}
+		});
+		
 		return E3mallResult.ok();
 	}
+
 	
+	/**
+	 * 需求:根据id查询商品描述数据
+	 * 参数:Long itemId
+	 * @param itemId
+	 * @return TbItemDesc
+	 * 商品详情调用方法:
+	 * 购物车调用方法:
+	 * 因此此方法查询数据库,对数据库造成很大压力,因此必须添加缓存
+	 * 缓存服务器redis:
+	 * 数据结构选用:String(因为要给缓存设置过期时间,只有string能设置)
+	 * KEY:ITEM_DETAIL:DESC:itemId
+	 * VALUE:json(item)
+	 * 缓存添加业务流程:
+	 * 	1. 先查缓存
+	 * 	2. 如果缓存中有数据,直接返回,不再查询数据库
+	 * 	3. 如果缓存中没有数据,查询数据库,并把数据放入到缓存
+	 * 	4. 缓存设置过期时间:12h. 12h后缓存消失,自动再次查询数据库
+	 */
+	public TbItemDesc findItemDescByID(Long itemId) {
+		
+		try {
+			//先查询缓存
+			String itemDescJson = jedisDao.get(ITEM_DETAIL+":DESC:"+itemId);
+			//判断商品缓存是否存在
+			if (StringUtils.isNotBlank(itemDescJson)) {
+				//说明缓存有值
+				TbItemDesc itemDesc = JsonUtils.jsonToPojo(itemDescJson, TbItemDesc.class);
+				//直接返回即可
+				return itemDesc;
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		//查询商品描述
+		TbItemDesc itemDesc = itemDescMapper.selectByPrimaryKey(itemId);
+		
+		//添加缓存
+		jedisDao.set(ITEM_DETAIL+":DESC:"+itemId, JsonUtils.objectToJson(itemDesc));
+		//设置缓存过期时间
+		jedisDao.expire(ITEM_DETAIL+":DESC:"+itemId, ITEM_DETAIL_EXPIRE_TIEM);
+		
+		return itemDesc;
+	}
 	
 
 }

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context" 
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:aop="http://www.springframework.org/schema/aop" 
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+	http://www.springframework.org/schema/context 
+	http://www.springframework.org/schema/context/spring-context-4.0.xsd
+	http://www.springframework.org/schema/aop 
+	http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+	http://www.springframework.org/schema/tx 
+	http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+	http://www.springframework.org/schema/mvc
+	http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
+	http://www.springframework.org/schema/util
+	http://www.springframework.org/schema/util/spring-util-4.0.xsd">
+	
+	<!-- 把activeMQ消息服务器交给spring管理 -->
+	<bean id="targetConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+		<constructor-arg name="brokerURL" value="tcp://192.168.80.131:61616"></constructor-arg>
+	</bean>
+	<!-- spring提供工厂类,管理消息服务器 -->
+	<bean id="connectionFactory" class="org.springframework.jms.connection.SingleConnectionFactory">
+		<property name="targetConnectionFactory" ref="targetConnectionFactory"></property>
+	</bean>
+	<!-- spring提供消息模板,直接使用发送模板发送消息 -->
+	<bean class="org.springframework.jms.core.JmsTemplate">
+		<property name="connectionFactory" ref="connectionFactory"></property>
+	</bean>
+	
+	<!-- 指定消息发送目的地:queue  topic -->
+	<!-- (测试)点对点模式:queue -->
+	<!-- <bean class="org.apache.activemq.command.ActiveMQQueue">
+		<constructor-arg value="oneQueue"></constructor-arg>
+	</bean> -->
+	<!-- (测试)发布订阅模式 -->
+	<!-- <bean class="org.apache.activemq.command.ActiveMQTopic">
+		<constructor-arg value="oneTopic"></constructor-arg>
+	</bean> -->
+	
+	<!-- 添加,修改,删除发送消息,同步索引库 -->
+	<!-- add:itemId  update:itemId -->
+	<bean class="org.apache.activemq.command.ActiveMQTopic">
+		<constructor-arg value="add_update_del_topic"></constructor-arg>
+	</bean>
+	
+	
+</beans>
