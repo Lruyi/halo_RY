@@ -55,6 +55,7 @@ public class SpringMQ {
 		
 		//获取消息发送目的地:发布订阅模式
 		Destination destination = app.getBean(ActiveMQTopic.class);
+		
 		//发送消息
 		jmsTemplate.send(destination, new MessageCreator() {
 			

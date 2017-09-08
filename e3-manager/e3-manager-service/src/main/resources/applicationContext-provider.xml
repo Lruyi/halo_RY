@@ -41,6 +41,7 @@
 		<constructor-arg value="oneTopic"></constructor-arg>
 	</bean> -->
 	
+	<!-- 指定消息发送目的地:queue  topic -->
 	<!-- 添加,修改,删除发送消息,同步索引库 -->
 	<!-- add:itemId  update:itemId -->
 	<bean class="org.apache.activemq.command.ActiveMQTopic">
