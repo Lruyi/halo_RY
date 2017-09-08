@@ -37,6 +37,7 @@
 		<constructor-arg value="oneTopic"></constructor-arg>
 	</bean> -->
 	
+	<!-- 指定消息发送目的地:queue  topic -->
 	<bean id="topic" class="org.apache.activemq.command.ActiveMQTopic">
 		<constructor-arg value="add_update_del_topic"></constructor-arg>
 	</bean>
