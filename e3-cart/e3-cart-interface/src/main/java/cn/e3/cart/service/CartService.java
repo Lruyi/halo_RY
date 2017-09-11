@@ -39,4 +39,13 @@ public interface CartService {
 	 */
 	E3mallResult deleteCart(Long userId, Long itemId);
 
+	/**
+	 * 需求: 更新购物车列表商品数量,总价格随着变化
+	 * @param id
+	 * @param itemId
+	 * @param num
+	 * @return E3mallResult
+	 */
+	E3mallResult updateRedisCart(Long userId, Long itemId, Integer num);
+
 }

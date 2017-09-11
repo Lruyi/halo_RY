@@ -171,4 +171,24 @@ public class CartServiceImpl implements CartService {
 		return E3mallResult.ok();
 	}
 
+	/**
+	 * 需求: 更新购物车列表商品数量,总价格随着变化
+	 * @param id
+	 * @param itemId
+	 * @param num
+	 * @return E3mallResult
+	 */
+	public E3mallResult updateRedisCart(Long userId, Long itemId, Integer num) {
+		// 从redis购物车获取商品数据
+		String itemJson = jedisDao.hget(REDIS_CART_KEY+":"+userId, itemId+"");
+		//把商品json格式数据转成对象
+		TbItem item = JsonUtils.jsonToPojo(itemJson, TbItem.class);
+		//设置商品数量
+		item.setNum(num);
+		//放回redis购物车中
+		jedisDao.hset(REDIS_CART_KEY+":"+userId, itemId+"", JsonUtils.objectToJson(item));
+		//返回
+		return E3mallResult.ok();
+	}
+
 }
