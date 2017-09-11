@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.alibaba.dubbo.config.support.Parameter;
 
@@ -212,6 +213,60 @@ public class CartController {
 		
 		return "redirect:/cart/cart.html";
 	}
+	
+	
+	/**
+	 * 需求:更新购物车列表商品数量,总价格随着变化
+	 * 请求: /cart/update/num/{itemId}/{num}.html
+	 * 参数:Long itemId,Integer num
+	 * 返回值:json(E3mallResult)
+	 * 业务:
+	 * 	1. 登录状态--修改redis购物车
+	 * 	2. 未登录状态--修改cookie购物车
+	 */
+	@RequestMapping("/cart/update/num/{itemId}/{num}")
+	@ResponseBody
+	public E3mallResult updateCart(@PathVariable Long itemId,
+			@PathVariable Integer num,HttpServletRequest request,
+			HttpServletResponse response){
+		
+		//从request域中获取身份信息
+		TbUser user = (TbUser) request.getAttribute("user");
+		//判断用户是否存在
+		if (user!=null) {
+			//用户存在,修改redis购物车
+			E3mallResult result = cartService.updateRedisCart(user.getId(),itemId,num);
+			
+			//直接返回
+			return result;
+		}
+		
+		//否则,用户没有登录
+		//首先获取购物车列表数据
+		List<TbItem> cartList = this.getCookieCartList(request);
+		//判断修改的是哪个商品
+		for (TbItem tbItem : cartList) {
+			//如果id相等,表示此商品需要被修改购买数量
+			if (tbItem.getId()==itemId) {
+				//修改购买数量
+				tbItem.setNum(num);
+				//跳出循环
+				break;
+			}
+		}
+		
+		//写回cookie购物车
+		CookieUtils.setCookie(request, 
+				response, 
+				COOKIE_CART, 
+				JsonUtils.objectToJson(cartList), 
+				COOKIE_CART_EXPIRE_TIME, 
+				true);
+		
+		return E3mallResult.ok();
+		
+	}
+	
 	
 
 	/**
